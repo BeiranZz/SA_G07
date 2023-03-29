@@ -27,8 +27,10 @@ if '-a' in args:
     potentialAccountNum = args[args.index("-a") + 1]
     if(potentialAccountNum.isnumeric()):
         accountNumber = int(potentialAccountNum)
+        data['accountNumber'] = accountNumber       #json request being modified accountNumber added
         print('Acount number: ' + str(accountNumber))
     else:
+        accountNumber = 13131313        #accountNumber 13131313 is for now an error number
         outputMsg = 'Insert a valid bank account number! e.g. 55555'
         run = False
     
@@ -98,7 +100,8 @@ numberOfModes = 0
 for param in args:
     #--------N_PARAMETER-------------------------
     if param == '-n' :
-        operation = 'createAcount'
+        operation = 'createAccount'
+        data['operation'] = 'createAccount'       #json request being modified operation added
         numberOfModes += 1
 
         potentialBalance = args[args.index("-n") + 1]
@@ -116,6 +119,7 @@ for param in args:
     #--------D_PARAMETER-------------------------
     elif param == '-d':
         operation = 'deposit'
+        data['operation'] = 'deposit'       #json request being modified operation added
         numberOfModes += 1
 
         potentialAmount = args[args.index("-d") + 1]
@@ -133,6 +137,7 @@ for param in args:
     #--------C_PARAMETER-------------------------
     elif param == '-c' :
         operation = 'createVCard'
+        data['operation'] = 'createVCard'       #json request being modified operation added
         numberOfModes += 1
 
         potentialAmount = args[args.index("-c") + 1]
@@ -149,6 +154,7 @@ for param in args:
     #--------G_PARAMETER-------------------------
     elif param == '-g':
         operation = 'getBalance'
+        data['operation'] = 'getBalance'       #json request being modified operation added
         numberOfModes += 1
         G_FLAG = True
     #--------------------------------------------
@@ -156,6 +162,7 @@ for param in args:
     #--------M_PARAMETER-------------------------
     elif param == '-m':
         operation = 'purchase'
+        data['operation'] = 'purchase'       #json request being modified operation added
         numberOfModes += 1    
         
         if isABankConnection:
@@ -181,15 +188,19 @@ elif(numberOfModes > 1):    #check if multiple modes of operator were added
     outputMsg = CONSTANT_ERROR_130
     run = False
 
-print('Auth File: ' + str(authFile))
-print('Run: ' + str(run))
-print('Output: ' + outputMsg)
-print('Host: ' + host)
-print('Port: ' + str(port))
-print('User File: ' + userFile)
-print('Number of Modes: ' + str(numberOfModes))
-print('Is a Bank Conn: ' + str(isABankConnection))
-print('Account numb: ' + str(accountNumber))
+printActivated = True       #for debug porpuses, put False to not have the following prints
+
+if(printActivated):
+    print('Auth File: ' + str(authFile))
+    print('Run: ' + str(run))
+    print('Output: ' + outputMsg)
+    print('Host: ' + host)
+    print('Port: ' + str(port))
+    print('User File: ' + userFile)
+    print('Number of Modes: ' + str(numberOfModes))
+    print('Operation: ' + str(operation))
+    print('Is a Bank Conn: ' + str(isABankConnection))
+    print('Account numb: ' + str(accountNumber))
 
 if run:
     try:
@@ -197,11 +208,15 @@ if run:
 
         clientsocket.connect((host, port))     #connection to hostname on the port
 
-        msg = clientsocket.recv(1024)      #receive no more than 1024 bytes
-    
-        clientsocket.close()
+        jsonRequest= json.dumps(data)       #turns into a json request, the data dictionary
 
-        print(msg.decode('ascii'))
+        clientsocket.send(jsonRequest.encode('ascii'))      #sends the json request
+
+        msg = clientsocket.recv(1024)      #receive the server answer, no more than 1024 bytes
+    
+        clientsocket.close()        #closes the server connection
+
+        print(msg.decode('ascii'))      #prints the server answer received
 
     except Exception as e:
         print(e)

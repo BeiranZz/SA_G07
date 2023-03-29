@@ -48,7 +48,7 @@ if run:
 
     serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    #create a socket 
 
-    host = "0.0.0.0"    #ip of the server
+    host = "127.0.0.1"    #ip of the server
 
     try:
         serversocket.bind((host, port))     #bind the socket to a public host and a port
@@ -59,9 +59,27 @@ if run:
 
         while run: 
             clientsocket, addr = serversocket.accept()
-            print("Got a connection from %s" % str(addr))
-            msg = 'Thank you for connecting' + "\r\n"
-            clientsocket.send(msg.encode('ascii'))
+
+            requestJson = clientsocket.recv(1024)       #receive the client request, no more than 1024 bytes
+
+            requestDict = json.loads(requestJson)       #loads the json format, turns it into a dictionary
+
+            accountNumber = requestDict['accountNumber']        #gets the request value of accountNumber 
+
+            if(accountNumber != None):      
+                print('Got a connection from client number ' + str(accountNumber))
+                answer = { 'status' : 'success' }       #modify this answer for a more suitable one
+            else:
+                answer = { 'status' : 'negative' }      #modify this answer for a more suitable one
+            
+
+            #PROCCESS THE REQUEST RECEIVED 
+            
+            #-----------------------------
+
+            jsonAnswer = json.dumps(answer)     #puts the dictionary answer as a json format 
+
+            clientsocket.send(jsonAnswer.encode('ascii'))       #sends the json answer for the request received
             clientsocket.close()
         
     except Exception as e: 
