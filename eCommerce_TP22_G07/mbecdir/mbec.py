@@ -48,7 +48,7 @@ def main():
     if '-i' in args:    #it can be store or bank
         host = args[args.index("-i") + 1]
     else: 
-        host = '127.0.0.2'
+        host = '127.0.0.1'
     #--------------------------------------------
 
     #--------P_PARAMETER-------------------------
@@ -151,6 +151,8 @@ def main():
                 amount = float(potentialAmount)
                 if(amount <= 0.0):
                     raise ValueError('Amount should be greater than 0.00')
+                else:
+                    data['amount'] = amount
 
             except ValueError:     #check if value meets the scope conditions
                 outputMsg = CONSTANT_ERROR_130
@@ -210,17 +212,10 @@ def main():
     if run:
         try:
             if operation == 'createAccount':
-                if not os.path.isfile(userFileName):    #check if the given userFile already exists
-                    userFile = open(userFileName, "w")     #create a user file with the given or default name
-
-                    userFile.write('123456')     #type the pin 123456 (FOR NOW?)
-
-                    userFile.close()
-
-                    #os.chmod(userFile, 0o444)       #give the permission to only be viewd
-                else:
+                if os.path.isfile(userFileName):    #check if the given userFile already exists
                     return 130
-
+            
+        
             clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    #create a socket object
 
             clientsocket.connect((host, port))     #connection to hostname on the port
@@ -233,8 +228,25 @@ def main():
             msg = clientsocket.recv(1024)      #receive the server answer, no more than 1024 bytes
         
             clientsocket.close()        #closes the server connection
+            
+            msg = msg.decode('ascii')
+            msgDict = json.loads(msg)
 
-            print(msg.decode('ascii'))      #prints the server answer received
+            if operation == 'createAccount' and msgDict['status'] == 200:
+                
+                userFile = open(userFileName, "w")     #create a user file with the given or default name
+
+                userFile.write('123456')     #type the pin 123456 (FOR NOW)
+
+                userFile.close()
+
+                #os.chmod(userFile, 0o444)       #give the permission to only be viewd
+            
+            #print(msgDict)
+            if msgDict['status'] == 130:
+                return 130
+            
+            print(msg)      #prints the server answer received
 
         except Exception as e:
             print(e)
