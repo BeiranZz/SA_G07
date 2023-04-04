@@ -3,8 +3,32 @@ import socket
 import json
 import os
 
+def isValidIpv4Address(ip):
+    """
+    Checks if a given IP address is a valid IPv4 address in dotted decimal notation.
+    """
+    parts = ip.split('.')       #split the IP address by '.'
+    
+    if len(parts) != 4:     #ensure that the IP address has four parts
+        return False
+    
+    for part in parts:      
+        if not part.isdigit() or int(part) < 0 or int(part) > 255:      #ensure that each part is a number between 0 and 255
+            return False
+    
+    return True
+
 def main():
 
+    #PROGRAM START
+    args = sys.argv    #input given
+    argsSize = len(args)    #get size of the input given
+    args.append(' ')     #index out of bounds prevention
+    #print(args)
+
+    MustHaveM = False
+    A_FLAG = False
+    V_Flag = False
     G_FLAG = False      #since -g parameter doesnt have other params
 
     run = True
@@ -24,14 +48,16 @@ def main():
 
         potentialAccountNum = args[args.index("-a") + 1]
         if(potentialAccountNum.isnumeric()):
+            A_FLAG = True
             accountNumber = int(potentialAccountNum)
             data['accountNumber'] = accountNumber       #json request being modified accountNumber added
             print('Acount number: ' + str(accountNumber))
         else:
-            accountNumber = 13131313        #accountNumber 13131313 is for now an error number
             outputMsg = 'Insert a valid bank account number! e.g. 55555'
-            run = False
-        
+            return 130
+    else:
+        if '-m' not in args:
+            return 130
 
     #--------------------------------------------
 
@@ -47,6 +73,8 @@ def main():
     #--------I_PARAMETER-------------------------
     if '-i' in args:    #it can be store or bank
         host = args[args.index("-i") + 1]
+        if not isValidIpv4Address(host):
+            return 130
     else: 
         host = '127.0.0.1'
     #--------------------------------------------
@@ -55,7 +83,7 @@ def main():
     if '-p' in args: #it can be store or bank
         potentialPort = args[args.index("-p") + 1]
         
-        if(potentialPort.isnumeric()):      #check if port inserted can be converted to an integer
+        if(potentialPort.isnumeric()):      #check if port inserted can be converted to an integer CHANGE TO THE PROJECT FORMAT
             port = int(potentialPort)
         else: 
             outputMsg = 'Port parameter should be an Integer!'
@@ -68,30 +96,34 @@ def main():
     #--------------------------------------------
 
     #--------U_PARAMETER-------------------------
-    if '-u' in args:
-        userFileName = args[args.index("-u")+1]
-        if(userFileName == ' '):    #check if userFile name was inserted 
-            userFileName = str(accountNumber) + '.user' 
-        data['userFile'] = userFileName
-    else:
-        userFileName = str(accountNumber) + '.user'
+    if A_FLAG:
+        if '-u' in args:
+            userFileName = args[args.index("-u")+1]
+            if(userFileName == ' '):    #check if userFile name was inserted 
+                userFileName = str(accountNumber) + '.user' 
+            data['userFile'] = userFileName
+        else:
+            userFileName = str(accountNumber) + '.user'
 
-    data['userFile'] = userFileName
+        data['userFile'] = userFileName
     #--------------------------------------------
 
     #--------V_PARAMETER-------------------------
 
     if '-v' in args:
         if isABankConnection:
-            run = False
-            outputMsg = 'Parameter -v invalid for a bank operation'
+            return 130
         else:    
             vccFile = args[args.index("-v")+1]
+            V_Flag = True
+            data['vccFile'] = vccFile
             if(vccFile == ' '):    #check if vccFile name was inserted 
+                return 130      #CHECK THE QUESTION ON THIS (TEMPORARY)
                 seqNumber = 0
                 vccFile = accountNumber + '_' + seqNumber + '.user'
     else:
         if not isABankConnection:
+            return 130 #CHECK THE QUESTION ON THIS (TEMPORARY)
             seqNumber = 0
             vccFile = accountNumber + '_' + seqNumber + '.user'
     #--------------------------------------------
@@ -168,6 +200,9 @@ def main():
 
         #--------M_PARAMETER-------------------------
         elif param == '-m':
+            if A_FLAG == True or V_Flag == False:
+                return 130
+            
             operation = 'purchase'
             data['operation'] = 'purchase'       #json request being modified operation added
             numberOfModes += 1    
@@ -182,10 +217,11 @@ def main():
                     shoppingValue = float(potentialShoppingValue)
                     if(shoppingValue < 0.0):
                         raise ValueError('Shopping value should be greater than 0')
+                    else:
+                        data['amount'] = shoppingValue 
 
                 except ValueError:     #check if value meets the scope conditions
-                    outputMsg = CONSTANT_ERROR_130
-                    run = False
+                    return 130
         #--------------------------------------------
         
     if(numberOfModes == 0):     #check if at least one mode of operator was added
@@ -203,11 +239,12 @@ def main():
         print('Output: ' + outputMsg)
         print('Host: ' + host)
         print('Port: ' + str(port))
-        print('User File: ' + userFileName)
         print('Number of Modes: ' + str(numberOfModes))
         print('Operation: ' + str(operation))
         print('Is a Bank Conn: ' + str(isABankConnection))
-        print('Account numb: ' + str(accountNumber))
+        if A_FLAG:
+            print('Account numb: ' + str(accountNumber))
+            print('User File: ' + userFileName)
 
     if run:
         try:
@@ -220,6 +257,7 @@ def main():
 
             clientsocket.connect((host, port))     #connection to hostname on the port
 
+            data['entity'] = 'client'       #tell the bank is a client speaking
 
             jsonRequest= json.dumps(data)       #turns into a json request, the data dictionary
 
@@ -255,13 +293,6 @@ def main():
             return CONSTANT_ERROR_130
         else:
             print(outputMsg)
-
-
-#PROGRAM START
-args = sys.argv    #input given
-argsSize = len(args)    #get size of the input given
-args.append(' ')     #index out of bounds prevention
-print(args)
 
 
 main = main()

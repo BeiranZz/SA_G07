@@ -1,6 +1,7 @@
 import sys
 import socket 
 import json
+import os
 
 def main():
     
@@ -15,8 +16,7 @@ def main():
         if '-' in param:
             if param != '-s':
                 if param != '-p':
-                    run = False
-                    outputMsg = CONSTANT_ERROR_125      #invalid parameter inserted
+                    return 125      #invalid parameter inserted
 
     
     if "-p" in args:
@@ -49,8 +49,6 @@ def main():
         serversocket.bind((host, port))     #bind the socket to a public host and a port
         serversocket.listen(1)
 
-        if not run:
-            print(outputMsg)
 
         while run: 
             clientsocket, addr = serversocket.accept()
@@ -59,105 +57,149 @@ def main():
 
             requestDict = json.loads(requestJson)       #loads the json format, turns it into a dictionary
 
-            accountNumber = requestDict['accountNumber']        #gets the request value of accountNumber 
+            if requestDict['entity'] == 'client':
+                accountNumber = requestDict['accountNumber']        #gets the request value of accountNumber 
 
-            if(accountNumber != None):      
-                print('Got a connection from client number ' + str(accountNumber))      #greet the user
+                if(accountNumber != None):      
 
-                userAccountNum = requestDict['accountNumber']
-                operation = requestDict['operation']
-                #print(requestDict)
-                if operation == 'createAccount':
-                    if userAccountNum not in clientInfo:     #checks if the accountNumber is in a valid format and if it already exists
-                        userFile = requestDict['userFile']
-                        balance = requestDict['balance']
-                        clientInfo[userAccountNum] = userFile, balance
-                        answer = { 'account' : userAccountNum, 'initial_balance': balance, 'status': 200}
-                        print(answer)
-                        
-                    else:
-                        answer = { 'status' : 'Account number inserted is invalid!' }
+                    if operation != 'createAccount':
+                        print('Got a connection from client number ' + str(accountNumber))      #greet the user
 
-                elif operation == 'deposit':
-                    
+                    userAccountNum = requestDict['accountNumber']
+                    operation = requestDict['operation']
                     #print(requestDict)
-                    #print(clientInfo)
+                    if operation == 'createAccount':
+                        if userAccountNum not in clientInfo:     #checks if the accountNumber is in a valid format and if it already exists
+                            userFile = requestDict['userFile']
+                            balance = requestDict['balance']
+                            clientInfo[userAccountNum] = userFile, balance
+                            answer = { 'account' : userAccountNum, 'initial_balance': balance, 'status': 200}
+                            print(answer)
+                            
+                        else:
+                            answer = { 'status' : 'Account number inserted is invalid!' }
 
-                    if userAccountNum in clientInfo:
+                    elif operation == 'deposit':
+                        
+                        if userAccountNum in clientInfo:
+                            userFile, balance = clientInfo[userAccountNum]
+                            if userFile == requestDict['userFile']:     #check if the userFile corresponds to the given one
+                                amount = requestDict['amount']      #get the amount to be deposit
+                                if amount is not None and amount > 0:
+                                    clientInfo[userAccountNum] = userFile, balance + amount
+                                    answer = { 'account' : userAccountNum, 'deposit': amount, 'status': 200}      
+                                    print(answer)
+                            else:
+                                answer = { 'status' : 'User file given doesnt correspond with the userfile required!' }  
+                        else:
+                            answer = { 'status' : 'Account Number doesnt exist!' }  
+
+                    #-----------------------------------
+                    elif operation == 'createVCard':
                         userFile, balance = clientInfo[userAccountNum]
                         if userFile == requestDict['userFile']:     #check if the userFile corresponds to the given one
                             amount = requestDict['amount']      #get the amount to be deposit
-                            if amount is not None and amount > 0:
-                                clientInfo[userAccountNum] = userFile, balance + amount
-                                answer = { 'account' : userAccountNum, 'deposit': amount, 'status': 200}      
-                                print(answer)
-                        else:
-                            answer = { 'status' : 'User file given doesnt correspond with the userfile required!' }  
-                    else:
-                        answer = { 'status' : 'Account Number doesnt exist!' }  
+                            if amount <= balance:
+                                if userAccountNum not in clientsWithCards:
+                                    clientsWithCards.append(userAccountNum)     #adds the user to the list with the users with vCards
 
-                #-----------------------------------
-                elif operation == 'createVCard':
-                    userFile, balance = clientInfo[userAccountNum]
-                    if userFile == requestDict['userFile']:     #check if the userFile corresponds to the given one
-                        amount = requestDict['amount']      #get the amount to be deposit
-                        if amount <= balance:
-                            if userAccountNum not in clientsWithCards:
-                                clientsWithCards.append(userAccountNum)     #adds the user to the list with the users with vCards
+                                    vCardFileName = str(userAccountNum) + '_' + str(vCardCount) + '.card'       #creates vCard file name in the format requested
 
-                                vCardFileName = str(userAccountNum) + '_' + str(vCardCount) + '.card'       #creates vCard file name in the format requested
+                                    vCardFile = open(vCardFileName, "w")     #create a vCard file with the correspondent name
 
-                                vCardFile = open(vCardFileName, "w")     #create a vCard file with the correspondent name
+                                    vCardFile.write(str(amount))     #type the amount of the card in the file
 
-                                vCardFile.write(str(amount))     #type the amount of the card in the file
+                                    vCardFile.close()
 
-                                vCardFile.close()
+                                    answer = { 'account' : userAccountNum, 'vcc_amount': amount, 'vcc_file': vCardFileName ,'status': 200}   
+                                    print(answer)
 
-                                answer = { 'account' : userAccountNum, 'vcc_amount': amount, 'vcc_file': vCardFileName ,'status': 200}   
-                                print(answer)
-
-                                vCardCount += 1
+                                    vCardCount += 1
+                                else:
+                                    answer = { 'status' : 130 }  
                             else:
                                 answer = { 'status' : 130 }  
                         else:
                             answer = { 'status' : 130 }  
-                    else:
-                        answer = { 'status' : 130 }  
 
- 
-                #-----------------------------------
-                elif operation == 'getBalance':
-                    if userAccountNum in clientInfo:
-                        userFile, balance = clientInfo[userAccountNum]
-                        if userFile == requestDict['userFile']:     #check if the userFile corresponds to the given one
-                            answer = { 'account' : userAccountNum, 'balance': balance, 'status': 200}   
-                            print(answer)
+    
+                    #-----------------------------------
+                    elif operation == 'getBalance':
+                        if userAccountNum in clientInfo:
+                            userFile, balance = clientInfo[userAccountNum]
+                            if userFile == requestDict['userFile']:     #check if the userFile corresponds to the given one
+                                answer = { 'account' : userAccountNum, 'balance': balance, 'status': 200}   
+                                print(answer)
+                            else:
+                                answer = { 'status' : 130 }   
                         else:
-                            answer = { 'status' : 130 }   
+                            answer = { 'status' : 130 } 
+                        
+
+
+                    #-----------------------------------
                     else:
                         answer = { 'status' : 130 } 
-                       
 
-
-                #-----------------------------------
+                    #-----------------------------------
                 else:
                     answer = { 'status' : 130 } 
+                
 
-                #-----------------------------------
-            else:
-                answer = { 'status' : 130 } 
-            
+                #PROCCESS THE REQUEST RECEIVED 
+                
+                #-----------------------------
+            elif(requestDict['entity'] == 'store'):     #check if its a store speaking
+                print('Store connecting')
 
-            #PROCCESS THE REQUEST RECEIVED 
-            
-            #-----------------------------
+                vccFile = requestDict['vccFile']        #gets the vccFile passed
+                amount = float(requestDict['amount'])     #gets the amount of the purchase
+
+                accountNum = int(vccFile.split('_')[0])      #gets the user num using the vcc file
+
+                print('------------')
+                print(requestDict)
+                print('------------')
+
+                if accountNum in clientsWithCards:      #check if given num has an active vcc card
+                    if os.path.isfile(vccFile):     #check if the file exists
+                        #print('File exists')
+                        file = open(vccFile, 'r')
+                        
+                        vccCredit = float(file.read())
+
+                        # Close the file
+                        file.close()
+
+                        if amount <= vccCredit:
+                            userFile, balance = clientInfo[accountNum]
+                            print(balance)
+                            if amount <= balance:       #checks if the client has enough balance to do the purchase
+                                balance -= amount       #takes the purchase amount out of the client's balance 
+                                os.remove(vccFile)      #deletes vcc file
+                                clientsWithCards.remove(accountNum)
+                                print(clientsWithCards)
+                                clientInfo[accountNum] = userFile, balance
+                                answer = { 'status' : 200 } 
+                            else:
+                                print('primeiro')
+                                answer = { 'status' : 130 } 
+                        else:
+                            answer = { 'status' : 130 } 
+                    else:
+                        answer = { 'status' : 130 } 
+                else:
+                    answer = { 'status' : 130 } 
+                
+
+
 
             jsonAnswer = json.dumps(answer)     #puts the dictionary answer as a json format 
             jsonAnswerAscii = jsonAnswer.encode('ascii')
 
             clientsocket.send(jsonAnswerAscii)       #sends the json answer for the request received
             clientsocket.close()
-        
+            
     except Exception as e: 
         #print(outputMsg)
         #print(e)
@@ -169,8 +211,6 @@ args = sys.argv    #input given
 argsSize = len(args)    #get size of the input given
 args.append(' ')     #index out of bounds prevention
 
-CONSTANT_ERROR_125 = 'ERROR_125'
-
 print(args)
 
 clientInfo = {}     #to store every client info
@@ -179,4 +219,4 @@ clientsWithCards = []
 
 main = main()
 
-print(main)
+#print(main)
