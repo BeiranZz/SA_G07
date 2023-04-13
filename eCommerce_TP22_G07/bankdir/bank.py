@@ -1,4 +1,5 @@
 from cryptography.fernet import Fernet
+import signal
 import sys
 import socket 
 import json
@@ -25,7 +26,6 @@ def decrypt(authFile, ciphertext):
     plaintext = fernet.decrypt(ciphertext)      #decrypt the ciphertext
     
     return plaintext
-
 
 #PROGRAM START
 args = sys.argv    #input given
@@ -67,7 +67,7 @@ else:
 if "-s" in args:
     authFile = args[args.index("-s")+1]
     if(authFile == ' '):    #check if authFile name was inserted 
-        authFile = 'bank.auth' 
+        authFile = 'bank.auth'
 else: 
     authFile = 'bank.auth'    #if authFile is not passed as a parameter
 
@@ -80,7 +80,6 @@ if not os.path.isfile(authFile):    #check if auth file exists
 else: 
     sys.exit(125)       #auth file doesnt exist
     
-
 serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    #create a socket 
 
 host = "127.0.0.1"    #ip of the server
@@ -89,12 +88,23 @@ try:
     serversocket.bind((host, port))     #bind the socket to a public host and a port
     serversocket.listen(1)
 
-
     while run: 
+
+        # Accept a client connection
         clientsocket, addr = serversocket.accept()
 
-        requestJsonEncrypted = clientsocket.recv(1024)       #receive the client request, no more than 1024 bytes
+        # Receive the encrypted nonce from the client
+        #encrypted_nonce = clientsocket.recv(1024)  # Use an appropriate buffer size
 
+        # Decrypt the nonce
+        #decrypted_nonce = decrypt(authFile, encrypted_nonce)  # Replace with your decryption function
+
+        #clientsocket.sendall(decrypted_nonce)
+
+        #serversocket.listen(1)
+
+        requestJsonEncrypted = clientsocket.recv(1024)       #receive the client request, no more than 1024 bytes
+        
         requestJson = decrypt(authFile, requestJsonEncrypted)
             
         requestDict = json.loads(requestJson)       #loads the json format, turns it into a dictionary
@@ -237,7 +247,11 @@ try:
 
         clientsocket.send(encrypt(authFile, jsonAnswerAscii))       #sends the json answer for the request received while encrypting it 
         clientsocket.close()
-        
+
+except KeyboardInterrupt:
+    print("Stopped!")
+    sys.exit(0)
+
 except Exception as e: 
     #print(outputMsg)
     #print(e)

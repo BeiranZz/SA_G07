@@ -87,6 +87,16 @@ try:
 
         clientsocket, addr = serversocket.accept()
 
+        # Receive the encrypted nonce from the client
+        #encrypted_nonce = clientsocket.recv(1024)  # Use an appropriate buffer size
+
+        # Decrypt the nonce
+        #decrypted_nonce = decrypt(authFile, encrypted_nonce)  # Replace with your decryption function
+
+        #clientsocket.sendall(decrypted_nonce)
+
+        #serversocket.listen(1)
+
         requestJson = clientsocket.recv(1024)       #receive the client request, no more than 1024 bytes
 
         requestDict = json.loads(requestJson)       #loads the json format, turns it into a dictionary

@@ -274,31 +274,43 @@ if run:
             if os.path.isfile(userFileName):    #check if the given userFile already exists
                 sys.exit(130)
         
-    
         clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    #create a socket object
-
+        
         clientsocket.connect((host, port))     #connection to hostname on the port
+
+        #nonce = os.urandom(16)      # Generate a random nonce
+
+        #encrypted_nonce = encrypt(authFile, nonce)      # Encrypt the nonce
+
+        #clientsocket.sendall(encrypted_nonce)       # Send the encrypted nonce to the server
+
+        #decrypted_nonce = clientsocket.recv(1024)  # Receive the decrypted nonce from the server
+
+        #if nonce != decrypted_nonce:
+            #sys.exit(130)
 
         data['entity'] = 'client'       #tell the bank is a client speaking
 
         jsonRequest= json.dumps(data)       #turns into a json request, the data dictionary
+        
         jsonRequestAscii = jsonRequest.encode('ascii')
-
+        
         clientsocket.send(encrypt(authFile, jsonRequestAscii))      #sends the json request
-
+        
         msgEncrypted = clientsocket.recv(1024)      #receive the server answer, no more than 1024 bytes
+        
         msg = decrypt(authFile, msgEncrypted)
 
         clientsocket.close()        #closes the server connection
-        
+
         msg = msg.decode('ascii')
         msgDict = json.loads(msg)
-
+        
         if operation == 'createAccount' and msgDict['status'] == 200:
             
             userFile = open(userFileName, "w")     #create a user file with the given or default name
-
-            userFile.write('123456')     #type the pin 123456 (FOR NOW)
+            
+            userFile.write(str(data['balance']))     #type the pin 123456 (FOR NOW)
 
             userFile.close()
 
