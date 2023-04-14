@@ -192,6 +192,23 @@ for param in args:
             else:
                 data['amount'] = amount
 
+                fileName = str(data['accountNumber']) + ".user"
+                userFile = open(fileName, "r+")     #create a user file with the given or default name
+
+                bal = userFile.read()
+
+                total = float(bal) + amount
+
+                userFile.truncate(0)
+
+                userFile.close()  
+
+                File = open(fileName, "r+")     #create a user file with the given or default name
+
+                File.write(str(total))     #type the pin 123456 (FOR NOW)
+
+                File.close()    
+
         except ValueError:     #check if value meets the scope conditions
             sys.exit(130)
     #--------------------------------------------
