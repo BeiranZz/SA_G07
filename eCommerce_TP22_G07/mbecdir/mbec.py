@@ -3,6 +3,7 @@ import sys
 import socket
 import json
 import os
+import random
 
 def encrypt(authFile, plaintext):
 
@@ -74,7 +75,7 @@ if '-a' in args:
         A_FLAG = True
         accountNumber = int(potentialAccountNum)
         data['accountNumber'] = accountNumber       #json request being modified accountNumber added
-        print('Acount number: ' + str(accountNumber))
+        #print('Acount number: ' + str(accountNumber))
     else:
         outputMsg = 'Insert a valid bank account number! e.g. 55555'
         sys.exit(130)
@@ -228,6 +229,7 @@ for param in args:
             if(amount <= 0.0):
                 sys.exit(130)
             else:
+                #print(str(amount))
                 data['amount'] = amount
 
                 fileName = str(data['accountNumber']) + ".user"
@@ -299,7 +301,7 @@ if(numberOfModes == 0):     #check if at least one mode of operator was added
 elif(numberOfModes > 1):    #check if multiple modes of operator were added
     sys.exit(130)
 
-printActivated = True       #for debug porpuses, put False to not have the following prints
+printActivated = False       #for debug porpuses, put False to not have the following prints
 
 if(printActivated):
     print('Auth File: ' + str(authFile))
@@ -324,16 +326,45 @@ if run:
         
         clientsocket.connect((host, port))     #connection to hostname on the port
 
-        #nonce = os.urandom(16)      # Generate a random nonce
+        #CHALLENGE WITH NONCE
+        if isABankConnection:
+            nonce = random.randint(0, 1000)     # Generate a random nonce
+            
 
-        #encrypted_nonce = encrypt(authFile, nonce)      # Encrypt the nonce
+            jsonRequest= json.dumps({'nonce': nonce, 'entity': 'client'})       #turns into a json request, the data dictionary
+            
+            jsonRequestAscii = jsonRequest.encode('ascii')
+            
+            clientsocket.send(encrypt(authFile, jsonRequestAscii))      #sends the json request
 
-        #clientsocket.sendall(encrypted_nonce)       # Send the encrypted nonce to the server
+            #encryptedNonce = encrypt(authFile, json.dumps({nonce}))      # Encrypt the nonce
 
-        #decrypted_nonce = clientsocket.recv(1024)  # Receive the decrypted nonce from the server
+            #clientsocket.send(encryptedNonce)       # Send the encrypted nonce to the server
+            msgEncrypted = clientsocket.recv(1024)      #receive the server answer, no more than 1024 bytes
+            
+            msg = decrypt(authFile, msgEncrypted)
 
-        #if nonce != decrypted_nonce:
-            #sys.exit(130)
+            msg = msg.decode('ascii')
+            msgDict = json.loads(msg)
+
+            #encryptedNoncePlusOne = clientsocket.recv(1024)  # Receive the encrypted nonce+1 from the server
+
+            #decryptedNoncePlusOne = decrypt(authFile, encryptedNoncePlusOne)
+            if printActivated:
+                print("Nonce : " + str(nonce))
+                print("Nonce + 1 received: " + str(msgDict['nonce']))
+
+            if(msgDict['nonce'] != None):
+                if(nonce+1 != msgDict['nonce']):
+                    sys.exit(130)
+            #else:
+             #   noncePlusTwo = msgDict['nonce'] + 1
+               # jsonRequest= json.dumps({'nonce': noncePlusTwo})       #turns into a json request, the data dictionary
+        
+         #       jsonRequestAscii = jsonRequest.encode('ascii')
+        
+          #      clientsocket.send(encrypt(authFile, jsonRequestAscii))      #sends the json request
+
 
         data['entity'] = 'client'       #tell the bank is a client speaking
 

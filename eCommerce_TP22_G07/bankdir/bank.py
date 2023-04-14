@@ -90,26 +90,60 @@ try:
 
     while run: 
 
+        
         # Accept a client connection
         clientsocket, addr = serversocket.accept()
-
-        # Receive the encrypted nonce from the client
-        #encrypted_nonce = clientsocket.recv(1024)  # Use an appropriate buffer size
-
-        # Decrypt the nonce
-        #decrypted_nonce = decrypt(authFile, encrypted_nonce)  # Replace with your decryption function
-
-        #clientsocket.sendall(decrypted_nonce)
-
-        #serversocket.listen(1)
 
         requestJsonEncrypted = clientsocket.recv(1024)       #receive the client request, no more than 1024 bytes
         
         requestJson = decrypt(authFile, requestJsonEncrypted)
             
         requestDict = json.loads(requestJson)       #loads the json format, turns it into a dictionary
+        
+            
 
+        #encryptedNonce = clientsocket.recv(1024)  #receives the nonce message
+
+        # Decrypt the nonce
+        #decryptedNonce = decrypt(authFile, encryptedNonce)  #decrypt the nonce sent
+
+
+        #decryptedNonce = decryptedNonce.decode('utf-8')
+        #decryptedNonce = int(decryptedNonce)
+        
+        #decryptedNonce += 1     #adds one to the nonce 
+
+        #clientsocket.send(encrypt(authFile, str(decryptedNonce)))
+
+        #clientsocket.sendall(decrypted_nonce)
+
+        #serversocket.listen(1)
+
+        
         if requestDict['entity'] == 'client':
+
+            if(requestDict["nonce"] != None):
+                nonce = requestDict["nonce"]
+
+                nonce+=1
+
+                jsonRequest= json.dumps({'nonce': nonce})       #turns into a json request, the data dictionary
+            
+                jsonRequestAscii = jsonRequest.encode('ascii')
+            
+                clientsocket.send(encrypt(authFile, jsonRequestAscii))      #sends the json request
+            else:
+                if(requestDict['entity'] == None or requestDict['entity'] != 'store'):
+                    run = False
+                    clientsocket.close()
+
+            requestJsonEncrypted = clientsocket.recv(1024)       #receive the client request, no more than 1024 bytes
+        
+            requestJson = decrypt(authFile, requestJsonEncrypted)
+                
+            requestDict = json.loads(requestJson)       #loads the json format, turns it into a dictionary
+
+
             accountNumber = requestDict['accountNumber']        #gets the request value of accountNumber 
 
             if(accountNumber != None):      
@@ -163,11 +197,11 @@ try:
 
                                 vCardFile.close()
 
-                                clientInfo[userAccountNum] = userFile, balance - amount
-                                print(balance)
+                                clientInfo[userAccountNum] = userFile, balance
+                                #print(balance)
 
                                 answer = { 'account' : userAccountNum, 'vcc_amount': amount, 'vcc_file': vCardFileName ,'status': 200}   
-                                print(answer)
+                                #print(answer)
 
                                 vCardCount += 1
                             else:
@@ -211,7 +245,7 @@ try:
             amount = float(requestDict['amount'])     #gets the amount of the purchase
 
             accountNum = int(vccFile.split('_')[0])      #gets the user num using the vcc file
-
+            #print("VCC Amount to use: " + str(amount))
             if accountNum in clientsWithCards:      #check if given num has an active vcc card
                 if os.path.isfile(vccFile):     #check if the file exists
                     #print('File exists')
@@ -227,13 +261,14 @@ try:
                         
                         if amount <= balance:       #checks if the client has enough balance to do the purchase
                             balance -= amount       #takes the purchase amount out of the client's balance 
+                            #print("New Balance: " + str(balance))
                             os.remove(vccFile)      #deletes vcc file
                             clientsWithCards.remove(accountNum)
-                            print(clientsWithCards)
+                            #print(clientsWithCards)
                             clientInfo[accountNum] = userFile, balance
                             answer = { 'status' : 200 } 
                         else:
-                            print('primeiro')
+                            #print('primeiro')
                             answer = { 'status' : 130 } 
                     else:
                         answer = { 'status' : 130 } 

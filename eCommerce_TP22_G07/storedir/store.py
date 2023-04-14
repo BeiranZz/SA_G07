@@ -38,7 +38,7 @@ outputMsg = ''
 
 CONSTANT_ERROR_135 = 'ERROR_135'
 
-print(args)
+#print(args)
 
 for param in args:      #check if an invalid parameter was added
     if '-' in param:
@@ -86,16 +86,6 @@ try:
     while run:
 
         clientsocket, addr = serversocket.accept()
-
-        # Receive the encrypted nonce from the client
-        #encrypted_nonce = clientsocket.recv(1024)  # Use an appropriate buffer size
-
-        # Decrypt the nonce
-        #decrypted_nonce = decrypt(authFile, encrypted_nonce)  # Replace with your decryption function
-
-        #clientsocket.sendall(decrypted_nonce)
-
-        #serversocket.listen(1)
 
         requestJsonEncrypted = clientsocket.recv(1024)       #receive the client request, no more than 1024 bytes
 
