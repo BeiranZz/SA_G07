@@ -97,7 +97,9 @@ try:
 
         #serversocket.listen(1)
 
-        requestJson = clientsocket.recv(1024)       #receive the client request, no more than 1024 bytes
+        requestJsonEncrypted = clientsocket.recv(1024)       #receive the client request, no more than 1024 bytes
+
+        requestJson = decrypt(authFile, requestJsonEncrypted)
 
         requestDict = json.loads(requestJson)       #loads the json format, turns it into a dictionary
 
@@ -121,30 +123,35 @@ try:
 
         jsonRequest= json.dumps(requestToBank)       #turns into a json request, the data dictionary
 
-        banksocket.send(jsonRequest.encode('ascii'))      #sends the json request
+        jsonRequestAscii = jsonRequest.encode('ascii')
 
-        bankMsg = banksocket.recv(1024)      #receive the server answer, no more than 1024 bytes
+        banksocket.send(encrypt(authFile, jsonRequestAscii))      #sends the json request
+
+        bankMsgEncrypted = banksocket.recv(1024)      #receive the server answer, no more than 1024 bytes
+
+        bankMsg = decrypt(authFile, bankMsgEncrypted)
 
         banksocket.close()        #closes the bank connection
         
         print('Connected to bank successfully!')
         
         bankMsg = bankMsg.decode('ascii')
-        
+
         bankMsgDict = json.loads(bankMsg)
 
         if bankMsgDict['status'] == 200:
-            print('tudo ok')
-            answer = { 'vcc_file' : vccFile , 'vcc_amount_used': amount, 'status': 200}  
+            answer = { 'vcc_file' : vccFile , 'vcc_amount_used': amount, 'status': 200} 
+            print(answer) 
         else:
             answer = {'status': bankMsgDict['status']}
+            print(answer) 
         
         #END OF BANK CONNECTION----------------------------
         
         jsonAnswer = json.dumps(answer)     #puts the dictionary answer as a json format 
         jsonAnswerAscii = jsonAnswer.encode('ascii')
 
-        clientsocket.send(jsonAnswerAscii)       #sends the json answer for the request received
+        clientsocket.send(encrypt(authFile, jsonAnswerAscii))       #sends the json answer for the request received
         clientsocket.close()
     
 except Exception as e: 

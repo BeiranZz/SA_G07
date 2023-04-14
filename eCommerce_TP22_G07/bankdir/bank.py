@@ -163,6 +163,9 @@ try:
 
                                 vCardFile.close()
 
+                                clientInfo[userAccountNum] = userFile, balance - amount
+                                print(balance)
+
                                 answer = { 'account' : userAccountNum, 'vcc_amount': amount, 'vcc_file': vCardFileName ,'status': 200}   
                                 print(answer)
 
@@ -221,7 +224,7 @@ try:
 
                     if amount <= vccCredit:
                         userFile, balance = clientInfo[accountNum]
-                        print(balance)
+                        
                         if amount <= balance:       #checks if the client has enough balance to do the purchase
                             balance -= amount       #takes the purchase amount out of the client's balance 
                             os.remove(vccFile)      #deletes vcc file

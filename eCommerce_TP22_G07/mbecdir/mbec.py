@@ -144,14 +144,16 @@ if '-v' in args:
         V_Flag = True
         data['vccFile'] = vccFile
         if(vccFile == ' '):    #check if vccFile name was inserted 
-            sys.exit(130)     #CHECK THE QUESTION ON THIS (TEMPORARY)
-            seqNumber = 0
+            seqNumber = 1
             vccFile = accountNumber + '_' + seqNumber + '.user'
+            data['vccFile'] = vccFile
+
 else:
     if not isABankConnection:
-        sys.exit(130)    #CHECK THE QUESTION ON THIS (TEMPORARY)
-        seqNumber = 0
+        seqNumber = 1
         vccFile = accountNumber + '_' + seqNumber + '.user'
+        data['vccFile'] = vccFile
+
 #--------------------------------------------
 
 numberOfModes = 0
@@ -228,6 +230,23 @@ for param in args:
             else:
                 data['amount'] = amount
 
+                fileName = str(data['accountNumber']) + ".user"
+                userFile = open(fileName, "r+")     #create a user file with the given or default name
+
+                bal = userFile.read()
+
+                total = float(bal) - amount
+
+                userFile.truncate(0)
+
+                userFile.close()  
+
+                File = open(fileName, "r+")     #create a user file with the given or default name
+
+                File.write(str(total))     #type the pin 123456 (FOR NOW)
+
+                File.close() 
+
         except ValueError:     #check if value meets the scope conditions
             sys.exit(130)
 
@@ -235,6 +254,16 @@ for param in args:
     elif param == '-g':
         operation = 'getBalance'
         data['operation'] = 'getBalance'       #json request being modified operation added
+
+        fileName = str(data['accountNumber']) + ".user"
+        userFile = open(fileName, "r")     #create a user file with the given or default name
+
+        bal = userFile.read()
+
+        userFile.close() 
+
+        data['amount'] = bal 
+
         numberOfModes += 1
         G_FLAG = True
     #--------------------------------------------
