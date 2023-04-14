@@ -143,7 +143,10 @@ try:
 
         clientsocket.send(encrypt(authFile, jsonAnswerAscii))       #sends the json answer for the request received
         clientsocket.close()
-    
+
+except KeyboardInterrupt:
+    print("Stopped!")
+    sys.exit(0)
 except Exception as e: 
     #print(outputMsg)
     sys.exit(130)

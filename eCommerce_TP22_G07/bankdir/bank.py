@@ -32,7 +32,7 @@ args = sys.argv    #input given
 argsSize = len(args)    #get size of the input given
 args.append(' ')     #index out of bounds prevention
 
-print(args)
+#print(args)
 
 clientInfo = {}     #to store every client info
 
